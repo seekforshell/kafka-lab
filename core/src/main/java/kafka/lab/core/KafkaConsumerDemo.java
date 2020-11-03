@@ -7,12 +7,10 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 
-import java.time.Duration;
 import java.util.Collections;
-import java.util.Optional;
 import java.util.Properties;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
+
+import static kafka.lab.KafkaProperties.KAFKA_CLUSTER_SERVER_URL;
 
 /**
  * @author: yujingzhi
@@ -24,19 +22,28 @@ public class KafkaConsumerDemo {
         String groupId = "123";
         int messageRemaining =100;
         Properties kafkaPropertie = new Properties();
-        kafkaPropertie.put("bootstrap.servers", "192.168.90.71:9092");
-        kafkaPropertie.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringDeserializer");
-        kafkaPropertie.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringDeserializer");
-        kafkaPropertie.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
+        kafkaPropertie.put("bootstrap.servers", KAFKA_CLUSTER_SERVER_URL);
+        kafkaPropertie.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.ByteArrayDeserializer");
+        kafkaPropertie.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.ByteArrayDeserializer");
+        kafkaPropertie.put(ConsumerConfig.GROUP_ID_CONFIG, String.format("consumer-%s", System.currentTimeMillis()));
         kafkaPropertie.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+        kafkaPropertie.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "true");
+        kafkaPropertie.put(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, "10000");
 
         Consumer consumer = new KafkaConsumer<String, String>(kafkaPropertie);
-        consumer.subscribe(Collections.singletonList(KafkaProperties.TOPIC));
-        ConsumerRecords<String, String> records = consumer.poll(Duration.ofSeconds(1));
+//        List<PartitionInfo> partitionInfoList = consumer.partitionsFor(KafkaProperties.TOPIC);
+//        PartitionInfo partitionInfo = partitionInfoList.get(0);
+//        TopicPartition topicPartition = new TopicPartition(partitionInfo.topic(), partitionInfo.partition());
+//        consumer.assign(Collections.singletonList(topicPartition));
+//        consumer.seek(topicPartition, 0);
+        consumer.subscribe(Collections.singleton(KafkaProperties.TOPIC));
+
+        ConsumerRecords<String, String> records = consumer.poll(10000);
         for (ConsumerRecord record : records) {
             System.out.println(groupId + " received message : from partition " + record.partition() + ", (" + record.key() + ", " + record.value() + ") at offset " + record.offset());
         }
         messageRemaining -= records.count();
+        consumer.commitAsync();
         if (messageRemaining <= 0) {
         }
     }

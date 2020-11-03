@@ -9,6 +9,8 @@ import java.util.Properties;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
+import static kafka.lab.KafkaProperties.KAFKA_CLUSTER_SERVER_URL;
+
 /**
  * @author: yujingzhi
  * Version: 1.0
@@ -19,14 +21,15 @@ public class KafkaProducerDemo {
     public void send() {
         Properties kafkaPropertie = new Properties();
         //配置broker地址，配置多个容错
-        kafkaPropertie.put("bootstrap.servers", "192.168.90.71:9092");
+        kafkaPropertie.put("bootstrap.servers", KAFKA_CLUSTER_SERVER_URL);
         //配置key-value允许使用参数化类型
         kafkaPropertie.put("key.serializer","org.apache.kafka.common.serialization.StringSerializer");
         kafkaPropertie.put("value.serializer","org.apache.kafka.common.serialization.StringSerializer");
 
         KafkaProducer<String, String> kafkaProducer = new KafkaProducer<String, String>(kafkaPropertie);
 
-        ProducerRecord<String, String> record = new ProducerRecord<String, String>(KafkaProperties.TOPIC,"kafkaLab","hello world");
+        ProducerRecord<String, String> record = new ProducerRecord<String, String>(KafkaProperties.TOPIC,"kafka",
+                "hello:"+ System.currentTimeMillis());
 
         try {
             Future<RecordMetadata> future = kafkaProducer.send(record);

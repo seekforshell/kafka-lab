@@ -7,8 +7,8 @@ import kafka.lab.core.KafkaProducerDemo;
  */
 public class Lab {
     public static void main(String[] args) {
-        KafkaProducerDemo producerDemo = new KafkaProducerDemo();
-        producerDemo.send();
+//        KafkaProducerDemo producerDemo = new KafkaProducerDemo();
+//        producerDemo.send();
 
         KafkaConsumerDemo consumerDemo = new KafkaConsumerDemo();
         consumerDemo.consume(true);
