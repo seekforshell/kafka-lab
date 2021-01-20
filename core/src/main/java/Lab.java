@@ -1,5 +1,11 @@
 import kafka.lab.core.KafkaConsumerDemo;
 import kafka.lab.core.KafkaProducerDemo;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.producer.ProducerConfig;
+
+import java.util.Properties;
+
+import static kafka.lab.KafkaProperties.KAFKA_CLUSTER_SERVER_URL;
 
 /**
  * @author: yujingzhi
@@ -7,10 +13,12 @@ import kafka.lab.core.KafkaProducerDemo;
  */
 public class Lab {
     public static void main(String[] args) {
-//        KafkaProducerDemo producerDemo = new KafkaProducerDemo();
-//        producerDemo.send();
+        Properties kafkaPropertie = new Properties();
+        KafkaProducerDemo producerDemo = new KafkaProducerDemo();
 
-        KafkaConsumerDemo consumerDemo = new KafkaConsumerDemo();
-        consumerDemo.consume(true);
+        kafkaPropertie.put("bootstrap.servers", KAFKA_CLUSTER_SERVER_URL);
+
+//        KafkaConsumerDemo consumerDemo = new KafkaConsumerDemo();
+//        consumerDemo.consume(true);
     }
 }

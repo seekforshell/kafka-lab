@@ -7,6 +7,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 
+import java.time.Duration;
 import java.util.Collections;
 import java.util.Properties;
 
@@ -31,14 +32,9 @@ public class KafkaConsumerDemo {
         kafkaPropertie.put(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, "10000");
 
         Consumer consumer = new KafkaConsumer<String, String>(kafkaPropertie);
-//        List<PartitionInfo> partitionInfoList = consumer.partitionsFor(KafkaProperties.TOPIC);
-//        PartitionInfo partitionInfo = partitionInfoList.get(0);
-//        TopicPartition topicPartition = new TopicPartition(partitionInfo.topic(), partitionInfo.partition());
-//        consumer.assign(Collections.singletonList(topicPartition));
-//        consumer.seek(topicPartition, 0);
         consumer.subscribe(Collections.singleton(KafkaProperties.TOPIC));
 
-        ConsumerRecords<String, String> records = consumer.poll(10000);
+        ConsumerRecords<String, String> records = consumer.poll(Duration.ofSeconds(1));
         for (ConsumerRecord record : records) {
             System.out.println(groupId + " received message : from partition " + record.partition() + ", (" + record.key() + ", " + record.value() + ") at offset " + record.offset());
         }

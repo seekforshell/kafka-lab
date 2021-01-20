@@ -16,7 +16,12 @@
  */
 package kafka.lab.core;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import kafka.lab.KafkaProperties;
+import kafka.lab.core.model.TickTokLive;
+import kafka.lab.core.model.TickTokReword;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.producer.Callback;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -25,16 +30,41 @@ import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.serialization.IntegerSerializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
 import java.util.Properties;
+import java.util.Random;
+import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 
+@Slf4j
 public class Producer extends Thread {
+
+    private static List<String> fansIds = new ArrayList<>();
+    private static List<String> liveIds = new ArrayList<>();
+    private static List<String> giftIds = new ArrayList<>();
+    private static Random random = new Random();
+    static {
+        fansIds.add("fans_001");
+        fansIds.add("fans_002");
+        fansIds.add("fans_003");
+
+        giftIds.add("helicopter");
+        giftIds.add("unicorn");
+        giftIds.add("boom");
+    }
+
     private final KafkaProducer<Integer, String> producer;
     private final String topic;
     private final Boolean isAsync;
     private int numRecords;
     private final CountDownLatch latch;
+    private final String liveId = "live001";
 
     public Producer(final String topic,
                     final Boolean isAsync,
@@ -45,7 +75,7 @@ public class Producer extends Thread {
                     final CountDownLatch latch) {
         Properties props = new Properties();
         props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, KafkaProperties.KAFKA_SERVER_URL + ":" + KafkaProperties.KAFKA_SERVER_PORT);
-        props.put(ProducerConfig.CLIENT_ID_CONFIG, "DemoProducer");
+        props.put(ProducerConfig.CLIENT_ID_CONFIG, "ticktokLive_demo");
         props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, IntegerSerializer.class.getName());
         props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
         if (transactionTimeoutMs > 0) {
@@ -72,23 +102,52 @@ public class Producer extends Thread {
         int messageKey = 0;
         int recordsSent = 0;
         while (recordsSent < numRecords) {
-            String messageStr = "Message_" + messageKey;
-            long startTime = System.currentTimeMillis();
+            String messageStr = "";
+            DateTimeFormatter DATETIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+            String current_time = LocalDateTime.now().format(DATETIME_FORMATTER);
+            if (KafkaConst.TOPIC_LIVE.equals(this.topic)) {
+                TickTokLive live = new TickTokLive();
+                live.setLive_time(current_time);
+                live.setBlogger_id("1001");
+                live.setLive_id(liveId);
+                liveIds.add(liveId);
+                ObjectMapper msg = new ObjectMapper();
+                try {
+                    messageStr = msg.writeValueAsString(live);
+                } catch (JsonProcessingException e) {
+                    log.error("json convert error", e);
+                }
+            } else if (KafkaConst.TOPIC_REWORD.equals(this.topic)) {
+                TickTokReword reword = new TickTokReword();
+                // 随机生成粉丝Id
+                reword.setFans_id(fansIds.get(random.nextInt(fansIds.size())));
+//                reword.setLive_id(liveIds.get(random.nextInt(liveIds.size())));
+                reword.setLive_id(liveId);
+                reword.setReward_gift_num(random.nextInt(10));
+                reword.setReward_time(current_time);
+                reword.setReward_gift_id(giftIds.get(random.nextInt(giftIds.size())));
+                ObjectMapper msg = new ObjectMapper();
+                try {
+                    messageStr = msg.writeValueAsString(reword);
+                } catch (JsonProcessingException e) {
+                    log.error("json convert error", e);
+                }
+            }
+
+
             if (isAsync) { // Send asynchronously
                 producer.send(new ProducerRecord<>(topic,
                     messageKey,
-                    messageStr), new DemoCallBack(startTime, messageKey, messageStr));
+                    messageStr), null);
             } else { // Send synchronously
                 try {
-                    producer.send(new ProducerRecord<>(topic,
-                        messageKey,
-                        messageStr)).get();
+                    producer.send(new ProducerRecord<>(topic, messageStr)).get();
                     System.out.println("Sent message: (" + messageKey + ", " + messageStr + ")");
                 } catch (InterruptedException | ExecutionException e) {
                     e.printStackTrace();
                 }
             }
-            messageKey += 2;
+
             recordsSent += 1;
         }
         System.out.println("Producer sent " + numRecords + " records successfully");
